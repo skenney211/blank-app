@@ -1,19 +1,34 @@
-# 🎈 Blank app template
+# Interactive 3D Tornado Visualization
 
-A simple Streamlit app template for you to modify!
+## Description
+This project is a real-time 3D simulation of a tornado, created using Three.js and WebGL. It features a dynamic particle system to visualize the tornado funnel and swirling debris, with parameters that can be adjusted interactively by the user. The tornado can also be moved around the scene.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+## How to Run
+1.  **Save Files:** Download `index.html` and `scene.js` and place them in the same directory on your local computer.
+2.  **Open in Browser:** Open the `index.html` file in a modern web browser (e.g., Chrome, Firefox, Edge, Safari) that supports WebGL.
+3.  **No Server Needed:** This project uses CDN links for Three.js and OrbitControls, so no local web server is strictly required. You can directly open the `index.html` file from your file system.
 
-### How to run it on your own machine
+## Controls
 
-1. Install the requirements
+### Camera
+*   **Orbit:** Left-click and drag the mouse.
+*   **Zoom:** Middle-click and drag, or use the mouse scroll wheel.
+*   **Pan:** Right-click and drag the mouse.
+    *(These are standard OrbitControls in Three.js)*
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+### Tornado Movement
+*   **Arrow Keys (Up, Down, Left, Right):** Use these keys to move the entire tornado system (funnel and debris) across the ground plane.
 
-2. Run the app
+### UI Sliders
+A control panel is available on the top-left of the screen. Use the sliders to adjust the following parameters in real-time:
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+*   **Rotational Speed:** Adjusts how fast the tornado particles spin around the core.
+*   **Inward Pull:** Controls the strength of the force pulling particles towards the tornado's central axis.
+*   **Upward Velocity:** Modifies the base speed at which particles (both funnel and debris) are lifted upwards.
+*   **Tornado Width (Top):** Changes the maximum radius of the tornado funnel at its widest point (the top). This also affects the core radius and debris emission area proportionally.
+*   **Funnel Density:** Adjusts the number of particles used to render the main tornado funnel, affecting its visual density.
+*   **Debris Density:** Adjusts the number of particles used for the ground debris being pulled into the tornado.
+
+## Credits
+*   Built using [Three.js](https://threejs.org/)
+*   Particle texture (`disc.png`) sourced from Three.js examples.
