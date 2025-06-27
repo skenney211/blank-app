@@ -42,10 +42,11 @@ let funnelParticlesMesh;
 let debrisParticlesMesh;   
 
 // Data arrays for particles
-let funnelParticlePositions; 
-let funnelParticlesData = [];     
-let debrisParticlePositions;   
-let debrisParticlesData = [];      
+let funnelParticlePositions;
+let funnelParticlesData = [];
+let funnelParticleColors;
+let debrisParticlePositions;
+let debrisParticlesData = [];
 
 // Geometries
 let funnelGeometry; 
@@ -59,6 +60,10 @@ let debrisMaterial;
 const textureLoader = new THREE.TextureLoader();
 // Using disc.png as a placeholder, a smoke texture would be better.
 const particleTexture = textureLoader.load('https://threejs.org/examples/textures/sprites/disc.png');
+
+// Colors for funnel gradient
+const funnelColorBottom = new THREE.Color(0x555555);
+const funnelColorTop = new THREE.Color(0xffffff);
 
 
 // -- Initialization Functions --
@@ -110,6 +115,14 @@ function initFunnelParticle(index, positionsArray, dataArray) {
     positionsArray[i + 1] = y;
     positionsArray[i + 2] = Math.sin(angle) * radius;
 
+    if (funnelParticleColors) {
+        const c = new THREE.Color();
+        c.lerpColors(funnelColorBottom, funnelColorTop, y / TORNADO_HEIGHT);
+        funnelParticleColors[i] = c.r;
+        funnelParticleColors[i + 1] = c.g;
+        funnelParticleColors[i + 2] = c.b;
+    }
+
     const initialUpwardVelocity = 0.01 + Math.random() * 0.02;
     dataArray[index] = {
         velocity: new THREE.Vector3(0, initialUpwardVelocity, 0),
@@ -126,30 +139,32 @@ function createTornadoFunnelSystem() {
     }
     funnelGeometry = new THREE.BufferGeometry();
     funnelParticlePositions = new Float32Array(currentFunnelParticleCount * 3);
+    funnelParticleColors = new Float32Array(currentFunnelParticleCount * 3);
     funnelParticlesData = new Array(currentFunnelParticleCount);
 
     for (let i = 0; i < currentFunnelParticleCount; i++) {
         initFunnelParticle(i, funnelParticlePositions, funnelParticlesData);
     }
     funnelGeometry.setAttribute('position', new THREE.BufferAttribute(funnelParticlePositions, 3));
+    funnelGeometry.setAttribute('color', new THREE.BufferAttribute(funnelParticleColors, 3));
 
     if (!funnelMaterial) {
         funnelMaterial = new THREE.PointsMaterial({
-            color: 0xAAAAAA,
-            size: 0.3, 
+            size: 0.3,
             transparent: true,
-            opacity: 0.35, 
+            opacity: 0.35,
             map: particleTexture,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             sizeAttenuation: true,
+            vertexColors: true,
         });
     } else { 
         funnelMaterial.map = particleTexture;
         funnelMaterial.blending = THREE.AdditiveBlending;
         funnelMaterial.depthWrite = false;
         funnelMaterial.sizeAttenuation = true;
-        funnelMaterial.color.set(0xAAAAAA);
+        funnelMaterial.vertexColors = true;
         funnelMaterial.size = 0.3;
         funnelMaterial.opacity = 0.35;
         funnelMaterial.needsUpdate = true;
@@ -335,6 +350,15 @@ function animate() {
             funnelParticlePositions[i * 3] = currentX;
             funnelParticlePositions[i * 3 + 2] = currentZ;
 
+            if (funnelParticleColors) {
+                const c = new THREE.Color();
+                const yNorm = Math.min(Math.max(funnelParticlePositions[i * 3 + 1] / TORNADO_HEIGHT, 0), 1);
+                c.lerpColors(funnelColorBottom, funnelColorTop, yNorm);
+                funnelParticleColors[i * 3] = c.r;
+                funnelParticleColors[i * 3 + 1] = c.g;
+                funnelParticleColors[i * 3 + 2] = c.b;
+            }
+
             let pull = currentInwardPullStrength * (1 - Math.min(1, currentY / TORNADO_HEIGHT));
             pull = Math.max(0, pull);
             if (currentRadiusFromCenter > 0.01) {
@@ -353,7 +377,10 @@ function animate() {
             }
         }
     }
-    if (funnelGeometry && funnelGeometry.attributes.position) funnelGeometry.attributes.position.needsUpdate = true;
+    if (funnelGeometry) {
+        if (funnelGeometry.attributes.position) funnelGeometry.attributes.position.needsUpdate = true;
+        if (funnelGeometry.attributes.color) funnelGeometry.attributes.color.needsUpdate = true;
+    }
 
     // Update Debris Particles
     for (let i = 0; i < currentDebrisParticleCount; i++) {
