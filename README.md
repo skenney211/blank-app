@@ -32,3 +32,8 @@ A control panel is available on the top-left of the screen. Use the sliders to a
 ## Credits
 *   Built using [Three.js](https://threejs.org/)
 *   Particle texture (`disc.png`) sourced from Three.js examples.
+
+## Bitcoin Dashboard
+A simple real-time dashboard `btc_dashboard.html` demonstrates fetching live Bitcoin data using the public CoinGecko API. It displays price action using Chart.js along with open interest, funding, and a macro event countdown.
+
+Open the file in any modern browser to view the live chart.
