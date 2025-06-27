@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BTC Real-Time Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+  <style>
+    :root {
+      --bg-color:#111927;
+      --text-color:#f6f6f7;
+      --accent:#33ffd6;
+      --panel-bg:#181c2a;
+    }
+    body{margin:0;font-family:sans-serif;background:var(--bg-color);color:var(--text-color);}
+    #main{padding:16px;}
+    canvas{background:var(--panel-bg);border-radius:18px;box-shadow:0 4px 22px #0002;}
+    .panel{margin:16px 0 0;font-size:1.15em;}
+    h2{margin-top:0;font-size:1.8em;letter-spacing:-1px;}
+    .glow{color:var(--accent);text-shadow:0 0 6px #17ffcc77,0 0 16px #00ffd5aa;}
+    .tag{background:#232d45;color:#31eaff;border-radius:7px;padding:2px 8px;margin-right:4px;font-size:0.92em;}
+    .animated-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:7px;animation:blink 1.4s infinite alternate;}
+    @keyframes blink{0%{opacity:1;}100%{opacity:0.1;}}
+    .theme-toggle{position:absolute;top:12px;right:12px;border:none;background:#232d45;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer;}
+    .light{--bg-color:#eaecee;--text-color:#222;--panel-bg:#fff;--accent:#ff8e53;}
+  </style>
+</head>
+<body>
+<div id="main">
+  <button class="theme-toggle" id="themeBtn">Toggle Theme</button>
+  <div class="animated-dot"></div><span class="tag">LIVE</span><h2 class="glow" style="display:inline;">Bitcoin Real-Time Dashboard</h2>
+  <canvas id="btcChart" width="375" height="210"></canvas>
+  <div class="panel">
+    <b>Price:</b> <span id="price"></span> <span class="tag">Price</span><br>
+    <b>24h High:</b> <span id="high"></span> <span class="tag">High</span><br>
+    <b>24h Low:</b> <span id="low"></span> <span class="tag">Low</span><br>
+    <b>Volume:</b> <span id="volume"></span> <span class="tag">Volume</span><br>
+    <b>Open Interest:</b> <span id="oi"></span> <span class="tag">OI</span><br>
+    <b>Funding Rate:</b> <span id="funding"></span> <span class="tag">Funding</span><br>
+    <b>Macro Event:</b> <span id="macro"></span> <span class="tag">Event</span>
+  </div>
+  <div id="alert" class="panel" style="color:#ffd74b;font-weight:bold;margin-top:12px;"></div>
+</div>
+<script>
+let btcCanvas, btcGradient, btcChartObj;
+if(!window.__btcCanvasDefined){
+  btcCanvas=document.getElementById('btcChart').getContext('2d');
+  window.__btcCanvasDefined=true;
+}else{btcCanvas=window.btcCanvas;}
+if(!window.__btcGradientDefined){
+  btcGradient=btcCanvas.createLinearGradient(0,0,0,210);
+  btcGradient.addColorStop(0,'#33ffd6cc');
+  btcGradient.addColorStop(0.5,'#111927bb');
+  btcGradient.addColorStop(1,'#ff8e53cc');
+  window.btcGradient=btcGradient;window.__btcGradientDefined=true;
+}else{btcGradient=window.btcGradient;}
+if(!window.__btcChartObjDefined){
+  btcChartObj=new Chart(btcCanvas,{type:'line',data:{labels:[],datasets:[{label:'BTC/USD',data:[],borderWidth:3,borderColor:'#33ffd6',backgroundColor:btcGradient,pointRadius:0,fill:true,tension:0.32}]},options:{responsive:true,animation:{duration:950,easing:'easeInOutQuart'},plugins:{legend:{labels:{color:'#fff',font:{size:14,weight:'bold'}}},annotation:{annotations:{line1:{type:'line',yMin:110000,yMax:110000,borderColor:'#ff8e53',borderWidth:2,borderDash:[10,6],label:{content:'Resistance $110k',enabled:true,color:'#ff8e53',position:'start',font:{size:12,weight:'bold'}}},line2:{type:'line',yMin:100000,yMax:100000,borderColor:'#33ffd6',borderWidth:2,borderDash:[7,7],label:{content:'Support $100k',enabled:true,color:'#33ffd6',position:'end',font:{size:12,weight:'bold'}}}}},tooltip:{enabled:true,mode:'index',intersect:false,backgroundColor:'#232d45cc',titleColor:'#33ffd6',bodyColor:'#fff',borderColor:'#ff8e53',borderWidth:1.2}},scales:{x:{display:false},y:{beginAtZero:false,ticks:{color:'#33ffd6',font:{size:14,weight:'bold'}},grid:{color:'#22324866'}}}}});
+  window.btcChartObj=btcChartObj;window.__btcChartObjDefined=true;
+}else{btcChartObj=window.btcChartObj;}
+async function fetchBTC(){
+  const url="https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1&interval=minute";
+  const res=await fetch(url);const data=await res.json();
+  const prices=data.prices.slice(-60);
+  const volume=data.total_volumes.slice(-60);
+  btcChartObj.data.labels=prices.map(p=>new Date(p[0]).toLocaleTimeString());
+  btcChartObj.data.datasets[0].data=prices.map(p=>p[1]);
+  if(!btcChartObj.data.datasets[1]){
+    btcChartObj.data.datasets.push({type:'bar',label:'Volume',data:volume.map(v=>v[1]),backgroundColor:'#233',yAxisID:'y1',barThickness:2});
+    btcChartObj.options.scales.y1={position:'right',grid:{display:false},ticks:{display:false}};
+  }else{btcChartObj.data.datasets[1].data=volume.map(v=>v[1]);}
+  btcChartObj.update();
+  document.getElementById('price').textContent='$'+prices[prices.length-1][1].toFixed(2);
+  const market=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin').then(r=>r.json());
+  if(market&&market[0]){
+    document.getElementById('high').textContent='$'+market[0].high_24h.toLocaleString();
+    document.getElementById('low').textContent='$'+market[0].low_24h.toLocaleString();
+    document.getElementById('volume').textContent='$'+Number(market[0].total_volume).toLocaleString();
+  }
+}
+function animateAlert(text){let e=document.getElementById('alert');e.textContent='';let idx=0;let timer=setInterval(()=>{if(idx<text.length){e.textContent+=text[idx++];}else{clearInterval(timer);}},18);}
+function macroEventCountdown(){let h=2,m=19,s=0;setInterval(()=>{if(s<=0){if(m<=0){if(h<=0){s=0;}else{h--;m=59;}}else{m--;s=59;}}else{s--;}document.getElementById('macro').textContent=`PCE Inflation in ${h}h ${m}m ${s}s`;},1000);}
+function updatePanels(){document.getElementById('oi').textContent="$7.24B";document.getElementById('funding').textContent="+0.0104% (Binance)";animateAlert("[ALERT] Dormant whale: 820 BTC moved to exchange (volatility watch!)");}
+function toggleTheme(){document.body.classList.toggle('light');}
+fetchBTC();updatePanels();macroEventCountdown();
+setInterval(fetchBTC,30000);setInterval(updatePanels,180000);
+document.getElementById('themeBtn').addEventListener('click',toggleTheme);
+</script>
+</body>
+</html>
